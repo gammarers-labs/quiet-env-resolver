@@ -11,5 +11,6 @@ const project = new ProjenTypeScriptProject({
     '@gammarers/projen-projects@^0.5.8',
   ],
   releaseToNpm: true,
+  npmTrustedPublishing: true,
 });
 project.synth();
