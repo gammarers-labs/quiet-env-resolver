@@ -50,6 +50,9 @@
     "ts-node": "^10.9.2",
     "typescript": "6.0.x"
   },
+  "dependencies": {
+    "strict-env-resolver": "^0.8.0"
+  },
   "keywords": [
     "environment",
     "resolver",
