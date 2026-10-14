@@ -10,5 +10,6 @@ const project = new ProjenTypeScriptProject({
   devDeps: [
     '@gammarers/projen-projects@^0.5.8',
   ],
+  releaseToNpm: true,
 });
 project.synth();
