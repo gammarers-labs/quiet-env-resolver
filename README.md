@@ -65,7 +65,7 @@ const checked = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, {
 });
 ```
 
-Check `QuietEnvResolverValidateError` before `QuietEnvResolverError`. Each failure is `{ key, kind }`. The message lists those names and kinds and does not include the rejected value.
+Check `QuietEnvResolverValidateError` before `QuietEnvResolverError`. Each entry in `failures` is a `QuietEnvResolverFailure` (`key` and `kind`). The message lists those names and kinds and does not include the rejected value.
 
 A trailing callback still works:
 
@@ -85,7 +85,7 @@ const envs = QuietEnvResolver.resolves({
 }, {
   onError: (error) => {
     if (error instanceof QuietEnvResolverValidateError) {
-      // [{ key: 'PORT', kind: 'missing' }, { key: 'MODE', kind: 'invalid_enum' }]
+      // [{ key: 'MODE', kind: 'missing' }]
       console.error(error.failures);
       return;
     }
@@ -119,7 +119,7 @@ A `QuietEnvOnError` callback still works as the last argument.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| **onError** | `QuietEnvOnError` | Optional. Validation failures are `QuietEnvResolverValidateError` with `failures` of `{ key, kind }`. Other thrown values are unchanged. Not called when `default` covers a missing value. |
+| **onError** | `QuietEnvOnError` | Optional. Validation failures are `QuietEnvResolverValidateError`. `failures` is `QuietEnvResolverFailure[]`. Other thrown values are unchanged. Not called when `default` covers a missing value. |
 
 A successful call returns the parsed value and does not call `onError`. A failed call calls `onError` when it was passed, then returns `undefined`. An exception thrown by `onError` propagates to the caller. Omitting `onError` still returns `undefined` and does not throw.
 
