@@ -5,10 +5,10 @@ const project = new ProjenTypeScriptProject({
   description: 'A library for resolving environment variables in a quiet way.',
   keywords: ['environment', 'variables', 'resolver'],
   deps: [
-    'strict-env-resolver@^0.8.0',
+    'strict-env-resolver@^0.9.0',
   ],
   devDeps: [
-    '@gammarers/projen-projects@^0.5.8',
+    '@gammarers/projen-projects@^0.8.0',
   ],
   releaseToNpm: true,
   npmTrustedPublishing: true,
