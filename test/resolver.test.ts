@@ -143,6 +143,7 @@ describe('QuietEnvResolver', () => {
   it('ignores a non-function onError and still returns undefined on failure', () => {
     delete process.env[PORT];
 
+    // Public overloads reject a string onError. The cast is how this case passes one.
     const resolve = QuietEnvResolver.resolve as unknown as (
       key: string,
       spec: typeof StrictEnvType.Number.Port,

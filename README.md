@@ -16,7 +16,7 @@ Resolves environment variables without throwing. Wraps `strict-env-resolver` and
 
 ## How it works
 
-`resolve` and `resolves` call `strict-env-resolver`. That library throws when a variable is missing or invalid. This package catches the throw. A validation failure is passed to `onError` as `QuietEnvResolverValidateError`. `failures` lists each variable name and kind (`missing`, `invalid_number`, `invalid_boolean`, or `invalid_enum`). The message is built from that list and does not include the rejected value. `resolves` calls `onError` once for the whole schema and keeps every failed key on that error. Any other thrown value is passed through unchanged. `onError` is optional: a callback, or `{ onError }` as the last argument. After a failure the call returns `undefined`. `default` is still the strict fallback for a missing value, and a missing value that uses `default` does not call `onError`.
+`resolve` and `resolves` call `strict-env-resolver`. That library throws when a variable is missing or invalid. This package catches the throw. A validation failure is passed to `onError` as `QuietEnvResolverValidateError`. `failures` lists each variable name and kind (`missing`, `invalid_number`, `invalid_boolean`, or `invalid_enum`). The message is built from that list and does not include the rejected value. `resolves` calls `onError` once for the whole schema and keeps every failed key on that error. Any other thrown value is passed through unchanged. `onError` is optional. On `resolve` it sits on the options object. A `QuietEnvOnError` callback or a `QuietEnvHandler` also works as the last argument. After a failure the call returns `undefined`. `default` is still the strict fallback for a missing value, and a missing value that uses `default` does not call `onError`.
 
 ## Installation
 
@@ -48,16 +48,13 @@ const port = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, { defau
 
 `port` is `3000` when `PORT` is unset, the parsed number when `PORT` is valid, and `undefined` when parsing fails. No error is thrown.
 
-Pass `onError` as the last argument. A function and `{ onError }` are both accepted:
+Pass `onError` on the options object:
 
 ```ts
 import { QuietEnvResolver, QuietEnvResolverValidateError, StrictEnvType } from 'quiet-env-resolver';
 
-const fromInvalid = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, (error) => {
-  console.error('failed to parse config', error);
-});
-
-const checked = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, { default: 3000 }, {
+const checked = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, {
+  default: 3000,
   onError: (error) => {
     if (error instanceof QuietEnvResolverValidateError) {
       console.error(error.failures);
@@ -69,6 +66,14 @@ const checked = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, { de
 ```
 
 Check `QuietEnvResolverValidateError` before `QuietEnvResolverError`. Each failure is `{ key, kind }`. The message lists those names and kinds and does not include the rejected value.
+
+A trailing callback still works:
+
+```ts
+QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, (error) => {
+  console.error('failed to parse config', error);
+});
+```
 
 Several variables in one call:
 
@@ -91,21 +96,24 @@ const envs = QuietEnvResolver.resolves({
 
 ## Options
 
-### `QuietEnvResolver.resolve(key, spec?, options?, onError?)`
+### `QuietEnvResolver.resolve(key, spec?, options?)`
 
 | Argument | Required | Description |
 |----------|----------|-------------|
 | **key** | Yes | Environment variable name (for example `"PORT"`). |
 | **spec** | No | Type spec. Defaults to `StrictEnvType.String`. Use `StrictEnvType.String`, `StrictEnvType.Number` (or a preset such as `Number.Port`), `StrictEnvType.Boolean` (or `Boolean.Literal`), or `StrictEnvType.Enum(choices)`. `Boolean.Literal` accepts only `true` / `false`. Any other non-empty value outside the boolean vocabulary fails with `invalid_boolean`. |
-| **options** | No | `{ default, trim }` forwarded to `strict-env-resolver`. `onError` may sit on this object. |
-| **onError** | No | Last argument. A callback `(error: unknown) => void`, or `{ onError }`. |
+| **options** | No | `QuietEnvOptions`. `{ default, trim, onError }`. `onError` is `QuietEnvOnError`. |
+
+A trailing `QuietEnvOnError` callback, or a `QuietEnvHandler`, still works as the last argument.
 
 ### `QuietEnvResolver.resolves(schema, onError?)`
 
 | Argument | Required | Description |
 |----------|----------|-------------|
 | **schema** | Yes | Object whose keys are env names. Each value is a spec, or a `[spec, options]` tuple. |
-| **onError** | No | Last argument. A callback, or `{ onError }`. Called once. `QuietEnvResolverValidateError.failures` lists every failed key and kind. |
+| **onError** | No | `QuietEnvHandler`. Called once. `QuietEnvResolverValidateError.failures` lists every failed key and kind. |
+
+A `QuietEnvOnError` callback still works as the last argument.
 
 ### `onError`
 

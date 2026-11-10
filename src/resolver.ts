@@ -160,6 +160,15 @@ const asStrictOptions = (value: object): StrictEnvOptions<StrictEnvSpec> => (
   value as StrictEnvOptions<StrictEnvSpec>
 );
 
+/**
+ * Reads one variable after the call arguments are split.
+ *
+ * @param key - Environment variable name.
+ * @param spec - Type spec. Omitted reads a string.
+ * @param options - `{ default, trim }`. `onError` on this object is not forwarded.
+ * @param onError - Failure callback.
+ * @returns Parsed value, or `undefined` when resolution fails.
+ */
 const readOne = (
   key: string,
   spec: StrictEnvSpec | undefined,
@@ -196,21 +205,8 @@ type QuietResolve = {
 };
 
 /**
- * Reads one environment variable.
- *
- * The last argument is optional. It may be an `onError` callback or `{ onError }`.
- * `onError` may also sit on the options object next to `default` and `trim`.
- * Validation failures become {@link QuietEnvResolverValidateError}. Other thrown
- * values are passed through. Nothing is thrown when `onError` is omitted.
- *
- * Overload signatures are what callers see. The implementation narrows each
- * argument shape at runtime because an arrow function cannot declare overloads.
- *
- * @param key - Environment variable name.
- * @param spec - Type spec. Defaults to string when omitted.
- * @param options - Optional `{ default, trim, onError }`.
- * @param onError - Callback or `{ onError }`, used when it is not already on `options`.
- * @returns Parsed value, or `undefined` when resolution fails.
+ * Narrows each argument at runtime.
+ * An arrow function cannot declare overloads, so {@link QuietResolve} is applied with a cast.
  */
 const resolve = ((
   key: string,
@@ -239,14 +235,7 @@ const resolve = ((
 }) as QuietResolve;
 
 /**
- * Reads every variable in `schema`.
- *
- * One validation error is reported for the whole schema. `failures` keeps every
- * failed key and kind. `onError` is optional and may be a callback or `{ onError }`.
- *
- * @param schema - Map of env names to specs or `[spec, options]` tuples.
- * @param onErrorOrHandler - Optional callback or `{ onError }`.
- * @returns Parsed object, or `undefined` when resolution fails.
+ * Forwards the schema read and reports one validation error for the whole schema.
  */
 const resolves = <TSchema extends StrictEnvSchema>(
   schema: TSchema,
@@ -261,7 +250,8 @@ const resolves = <TSchema extends StrictEnvSchema>(
  *
  * @example
  * ```ts
- * const port = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, { default: 3000 }, {
+ * const port = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, {
+ *   default: 3000,
  *   onError: (error) => {
  *     if (error instanceof QuietEnvResolverValidateError) {
  *       console.error(error.failures);
@@ -273,8 +263,31 @@ const resolves = <TSchema extends StrictEnvSchema>(
  * ```
  */
 export const QuietEnvResolver = {
-  /** Reads and parses a single environment variable. See {@link resolve}. */
+  /**
+   * Reads one environment variable.
+   *
+   * `onError` sits on {@link QuietEnvOptions} next to `default` and `trim`.
+   * A trailing {@link QuietEnvOnError} callback or {@link QuietEnvHandler} still works.
+   * Validation failures become {@link QuietEnvResolverValidateError}. Other thrown
+   * values are passed through. Nothing is thrown when `onError` is omitted.
+   *
+   * @param key - Environment variable name.
+   * @param spec - Type spec. Defaults to string when omitted.
+   * @param options - Optional `{ default, trim, onError }`.
+   * @param onError - Trailing callback or `{ onError }`. When both this and `options.onError` are set, this one is used.
+   * @returns Parsed value, or `undefined` when resolution fails.
+   */
   resolve,
-  /** Reads and parses every variable in a schema. See {@link resolves}. */
+  /**
+   * Reads every variable in a schema.
+   *
+   * One validation error is reported for the whole schema. `failures` keeps every
+   * failed key and kind. Pass a {@link QuietEnvHandler}. A {@link QuietEnvOnError}
+   * callback still works.
+   *
+   * @param schema - Map of env names to specs or `[spec, options]` tuples.
+   * @param onErrorOrHandler - `QuietEnvHandler`, or a trailing callback.
+   * @returns Parsed object, or `undefined` when resolution fails.
+   */
   resolves,
 };
