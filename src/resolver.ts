@@ -7,7 +7,10 @@ import {
   type StrictEnvSpec,
   type StrictEnvSpecToType,
 } from 'strict-env-resolver';
-import { QuietEnvResolverValidateError } from './core/errors';
+import {
+  QuietEnvResolverValidateError,
+  type QuietEnvResolverFailure,
+} from './core/errors';
 
 /**
  * Called when resolution fails.
@@ -106,6 +109,7 @@ const onErrorFrom = (value: unknown): QuietEnvOnError | undefined => {
 
 /**
  * Maps a thrown validation error onto this package's error.
+ * Copies each variable name and kind. The dependency message and raw value are dropped.
  * Other thrown values stay as they are.
  *
  * @param error - Caught exception.
@@ -116,7 +120,13 @@ const toQuietError = (error: unknown): unknown => {
     return error;
   }
 
-  return new QuietEnvResolverValidateError();
+  // `message` and `raw` include the rejected value. Keep the name and kind only.
+  const failures: readonly QuietEnvResolverFailure[] = error.errors.map((entry) => ({
+    key: entry.key,
+    kind: entry.kind,
+  }));
+
+  return new QuietEnvResolverValidateError(failures);
 };
 
 /**
@@ -231,8 +241,8 @@ const resolve = ((
 /**
  * Reads every variable in `schema`.
  *
- * One validation failure is reported once. `onError` is optional and may be a
- * callback or `{ onError }`.
+ * One validation error is reported for the whole schema. `failures` keeps every
+ * failed key and kind. `onError` is optional and may be a callback or `{ onError }`.
  *
  * @param schema - Map of env names to specs or `[spec, options]` tuples.
  * @param onErrorOrHandler - Optional callback or `{ onError }`.
@@ -254,7 +264,7 @@ const resolves = <TSchema extends StrictEnvSchema>(
  * const port = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, { default: 3000 }, {
  *   onError: (error) => {
  *     if (error instanceof QuietEnvResolverValidateError) {
- *       console.error('config shape mismatch');
+ *       console.error(error.failures);
  *       return;
  *     }
  *     console.error('failed to parse config', error);

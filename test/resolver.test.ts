@@ -4,13 +4,18 @@ import {
   QuietEnvResolverError,
   QuietEnvResolverValidateError,
   StrictEnvType,
+  type QuietEnvResolverFailure,
 } from '../src';
 
 const PORT = 'QUIET_ENV_RESOLVER_PORT';
 const MODE = 'QUIET_ENV_RESOLVER_MODE';
 const DEBUG = 'QUIET_ENV_RESOLVER_DEBUG';
 const NAME = 'QUIET_ENV_RESOLVER_NAME';
-const SHAPE_MISMATCH = 'Environment variable did not match the expected shape';
+
+const failureMessage = (failures: readonly QuietEnvResolverFailure[]): string => {
+  const lines = failures.map((failure) => `- ${failure.key}: ${failure.kind}`);
+  return `Invalid environment variables (${failures.length}):\n${lines.join('\n')}`;
+};
 
 describe('QuietEnvResolver', () => {
   const onError = jest.fn();
@@ -66,8 +71,17 @@ describe('QuietEnvResolver', () => {
     }
 
     expect(error.name).toBe('QuietEnvResolverValidateError');
-    expect(error.message).toBe(SHAPE_MISMATCH);
+
+    const failures: readonly QuietEnvResolverFailure[] = [
+      { key: PORT, kind: 'invalid_number' },
+    ];
+    expect(error.failures).toEqual(failures);
+    expect(error.message).toBe(failureMessage(failures));
     expect(error.message).not.toContain('nope');
+    expect(error.message).not.toContain('got');
+    expect(error.message).not.toContain('raw=');
+    expect(error).not.toHaveProperty('errors');
+    expect(error).not.toHaveProperty('keys');
   });
 
   it('accepts { onError } as the last argument', () => {
@@ -79,6 +93,27 @@ describe('QuietEnvResolver', () => {
 
     expect(port).toBe(3000);
     expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('reports a missing variable with kind missing and does not include a raw value', () => {
+    delete process.env[NAME];
+
+    const name = QuietEnvResolver.resolve(NAME, onError);
+
+    expect(name).toBeUndefined();
+    expect(onError).toHaveBeenCalledTimes(1);
+
+    const error: unknown = onError.mock.calls[0][0];
+    if (!(error instanceof QuietEnvResolverValidateError)) {
+      throw new Error('expected QuietEnvResolverValidateError');
+    }
+
+    const failures: readonly QuietEnvResolverFailure[] = [
+      { key: NAME, kind: 'missing' },
+    ];
+    expect(error.failures).toEqual(failures);
+    expect(error.message).toBe(failureMessage(failures));
+    expect(error.message).not.toContain('raw=');
   });
 
   it('returns undefined and does not throw when onError is omitted', () => {
@@ -155,7 +190,7 @@ describe('QuietEnvResolver', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it('reports a schema failure once through { onError } and does not include raw values', () => {
+  it('reports every failed key and kind once through { onError } and does not include raw values', () => {
     delete process.env[PORT];
     process.env[MODE] = 'nope';
 
@@ -165,14 +200,22 @@ describe('QuietEnvResolver', () => {
     }, { onError });
 
     expect(envs).toBeUndefined();
+    expect(onError).toHaveBeenCalledTimes(1);
 
     const error: unknown = onError.mock.calls[0][0];
     if (!(error instanceof QuietEnvResolverValidateError)) {
       throw new Error('expected QuietEnvResolverValidateError');
     }
 
-    expect(error.message).toBe(SHAPE_MISMATCH);
+    const failures: readonly QuietEnvResolverFailure[] = [
+      { key: PORT, kind: 'missing' },
+      { key: MODE, kind: 'invalid_enum' },
+    ];
+    expect(error.failures).toEqual(failures);
+    expect(error.message).toBe(failureMessage(failures));
     expect(error.message).not.toContain('nope');
+    expect(error.message).not.toContain('got');
+    expect(error.message).not.toContain('raw=');
     expect(error).not.toHaveProperty('errors');
     expect(error).not.toHaveProperty('keys');
   });

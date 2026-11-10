@@ -11,12 +11,12 @@ Resolves environment variables without throwing. Wraps `strict-env-resolver` and
 
 - Reads `string`, `number`, `boolean`, and `enum` environment variables with the same specs as `strict-env-resolver`
 - Reports a failure through an optional `onError` instead of throwing
-- Passes shape mismatches as `QuietEnvResolverValidateError` and leaves any other thrown value unchanged
+- Passes shape mismatches as `QuietEnvResolverValidateError`, listing each failed name and kind without the rejected value, and leaves any other thrown value unchanged
 - Resolves one variable with `resolve`, or every key in a schema with `resolves`
 
 ## How it works
 
-`resolve` and `resolves` call `strict-env-resolver`. That library throws when a variable is missing or invalid. This package catches the throw. A validation failure is passed to `onError` as `QuietEnvResolverValidateError`, without the rejected value. Any other thrown value is passed through unchanged. `onError` is optional: a callback, or `{ onError }` as the last argument. After a failure the call returns `undefined`. `default` is still the strict fallback for a missing value, and a missing value that uses `default` does not call `onError`.
+`resolve` and `resolves` call `strict-env-resolver`. That library throws when a variable is missing or invalid. This package catches the throw. A validation failure is passed to `onError` as `QuietEnvResolverValidateError`. `failures` lists each variable name and kind (`missing`, `invalid_number`, or `invalid_enum`). The message is built from that list and does not include the rejected value. `resolves` calls `onError` once for the whole schema and keeps every failed key on that error. Any other thrown value is passed through unchanged. `onError` is optional: a callback, or `{ onError }` as the last argument. After a failure the call returns `undefined`. `default` is still the strict fallback for a missing value, and a missing value that uses `default` does not call `onError`.
 
 ## Installation
 
@@ -60,7 +60,7 @@ const fromInvalid = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, 
 const checked = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, { default: 3000 }, {
   onError: (error) => {
     if (error instanceof QuietEnvResolverValidateError) {
-      console.error('config shape mismatch');
+      console.error(error.failures);
       return;
     }
     console.error('failed to parse config', error);
@@ -68,7 +68,7 @@ const checked = QuietEnvResolver.resolve('PORT', StrictEnvType.Number.Port, { de
 });
 ```
 
-Check `QuietEnvResolverValidateError` before `QuietEnvResolverError`. The validation error does not include the rejected value.
+Check `QuietEnvResolverValidateError` before `QuietEnvResolverError`. Each failure is `{ key, kind }`. The message lists those names and kinds and does not include the rejected value.
 
 Several variables in one call:
 
@@ -80,7 +80,8 @@ const envs = QuietEnvResolver.resolves({
 }, {
   onError: (error) => {
     if (error instanceof QuietEnvResolverValidateError) {
-      console.error('config shape mismatch');
+      // [{ key: 'PORT', kind: 'missing' }, { key: 'MODE', kind: 'invalid_enum' }]
+      console.error(error.failures);
       return;
     }
     console.error('failed to parse config', error);
@@ -104,13 +105,13 @@ const envs = QuietEnvResolver.resolves({
 | Argument | Required | Description |
 |----------|----------|-------------|
 | **schema** | Yes | Object whose keys are env names. Each value is a spec, or a `[spec, options]` tuple. |
-| **onError** | No | Last argument. A callback, or `{ onError }`. One failure is reported for the whole schema. |
+| **onError** | No | Last argument. A callback, or `{ onError }`. Called once. `QuietEnvResolverValidateError.failures` lists every failed key and kind. |
 
 ### `onError`
 
 | Field | Type | Description |
 |-------|------|-------------|
-| **onError** | `(error: unknown) => void` | Optional. Validation failures are `QuietEnvResolverValidateError`. Other thrown values are unchanged. Not called when `default` covers a missing value. |
+| **onError** | `QuietEnvOnError` | Optional. Validation failures are `QuietEnvResolverValidateError` with `failures` of `{ key, kind }`. Other thrown values are unchanged. Not called when `default` covers a missing value. |
 
 A successful call returns the parsed value and does not call `onError`. A failed call calls `onError` when it was passed, then returns `undefined`. An exception thrown by `onError` propagates to the caller. Omitting `onError` still returns `undefined` and does not throw.
 
