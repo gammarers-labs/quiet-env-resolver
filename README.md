@@ -16,7 +16,7 @@ Resolves environment variables without throwing. Wraps `strict-env-resolver` and
 
 ## How it works
 
-`resolve` and `resolves` call `strict-env-resolver`. That library throws when a variable is missing or invalid. This package catches the throw. A validation failure is passed to `onError` as `QuietEnvResolverValidateError`. `failures` lists each variable name and kind (`missing`, `invalid_number`, or `invalid_enum`). The message is built from that list and does not include the rejected value. `resolves` calls `onError` once for the whole schema and keeps every failed key on that error. Any other thrown value is passed through unchanged. `onError` is optional: a callback, or `{ onError }` as the last argument. After a failure the call returns `undefined`. `default` is still the strict fallback for a missing value, and a missing value that uses `default` does not call `onError`.
+`resolve` and `resolves` call `strict-env-resolver`. That library throws when a variable is missing or invalid. This package catches the throw. A validation failure is passed to `onError` as `QuietEnvResolverValidateError`. `failures` lists each variable name and kind (`missing`, `invalid_number`, `invalid_boolean`, or `invalid_enum`). The message is built from that list and does not include the rejected value. `resolves` calls `onError` once for the whole schema and keeps every failed key on that error. Any other thrown value is passed through unchanged. `onError` is optional: a callback, or `{ onError }` as the last argument. After a failure the call returns `undefined`. `default` is still the strict fallback for a missing value, and a missing value that uses `default` does not call `onError`.
 
 ## Installation
 
@@ -96,7 +96,7 @@ const envs = QuietEnvResolver.resolves({
 | Argument | Required | Description |
 |----------|----------|-------------|
 | **key** | Yes | Environment variable name (for example `"PORT"`). |
-| **spec** | No | Type spec. Defaults to `StrictEnvType.String`. Use `StrictEnvType.String`, `StrictEnvType.Number` (or a preset such as `Number.Port`), `StrictEnvType.Boolean`, or `StrictEnvType.Enum(choices)`. |
+| **spec** | No | Type spec. Defaults to `StrictEnvType.String`. Use `StrictEnvType.String`, `StrictEnvType.Number` (or a preset such as `Number.Port`), `StrictEnvType.Boolean` (or `Boolean.Literal`), or `StrictEnvType.Enum(choices)`. `Boolean.Literal` accepts only `true` / `false`. Any other non-empty value outside the boolean vocabulary fails with `invalid_boolean`. |
 | **options** | No | `{ default, trim }` forwarded to `strict-env-resolver`. `onError` may sit on this object. |
 | **onError** | No | Last argument. A callback `(error: unknown) => void`, or `{ onError }`. |
 

@@ -30,10 +30,11 @@ export abstract class QuietEnvResolverError extends Error {
  * Why a variable was rejected.
  *
  * Same categories as `strict-env-resolver`: unset or empty (`missing`),
- * a value that is not a finite number (`invalid_number`), or a value outside
- * the enum choices (`invalid_enum`).
+ * a value that is not a finite number (`invalid_number`), a value outside the
+ * boolean vocabulary (`invalid_boolean`), or a value outside the enum choices
+ * (`invalid_enum`).
  */
-export type QuietEnvResolverFailureKind = 'missing' | 'invalid_number' | 'invalid_enum';
+export type QuietEnvResolverFailureKind = 'missing' | 'invalid_number' | 'invalid_boolean' | 'invalid_enum';
 
 /**
  * One variable that failed validation.

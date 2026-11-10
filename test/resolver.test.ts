@@ -174,6 +174,29 @@ describe('QuietEnvResolver', () => {
     }).toThrow('handler failed');
   });
 
+  it('reports an unrecognized boolean as invalid_boolean and does not include the raw value', () => {
+    process.env[DEBUG] = 'enabled';
+
+    const debug = QuietEnvResolver.resolve(DEBUG, StrictEnvType.Boolean, onError);
+
+    expect(debug).toBeUndefined();
+    expect(onError).toHaveBeenCalledTimes(1);
+
+    const error: unknown = onError.mock.calls[0][0];
+    if (!(error instanceof QuietEnvResolverValidateError)) {
+      throw new Error('expected QuietEnvResolverValidateError');
+    }
+
+    const failures: readonly QuietEnvResolverFailure[] = [
+      { key: DEBUG, kind: 'invalid_boolean' },
+    ];
+    expect(error.failures).toEqual(failures);
+    expect(error.message).toBe(failureMessage(failures));
+    expect(error.message).not.toContain('enabled');
+    expect(error.message).not.toContain('got');
+    expect(error.message).not.toContain('raw=');
+  });
+
   it('returns every parsed value from resolves', () => {
     process.env[PORT] = '80';
     process.env[DEBUG] = 'yes';
