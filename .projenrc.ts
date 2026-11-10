@@ -8,7 +8,7 @@ const project = new ProjenTypeScriptProject({
     'strict-env-resolver@^0.9.0',
   ],
   devDeps: [
-    '@gammarers/projen-projects@^0.5.8',
+    '@gammarers/projen-projects@^0.8.0',
   ],
   releaseToNpm: true,
   npmTrustedPublishing: true,
